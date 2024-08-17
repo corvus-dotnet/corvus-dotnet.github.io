@@ -1,0 +1,33 @@
+{
+  "lang": "en",
+  "dir": "ltr",
+  "name": "Corvus.Net",
+  "description": "Corvus.Net",
+  "short_name": "Corvus.Net",
+  "scope": "/",
+  "theme_color": "#1C1D21",
+  "icons": [
+    {
+      "src": "/192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
