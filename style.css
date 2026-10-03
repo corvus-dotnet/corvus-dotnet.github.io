@@ -249,7 +249,8 @@ article {
   footer {
     align-items: center;
     display: flex;
-    gap: var(--m-lg);
+    flex-wrap: wrap;
+    gap: var(--m-sm) var(--m-lg);
     margin-block-start: var(--m);
 
     span {
