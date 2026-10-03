@@ -1,0 +1,36 @@
+name: Update stats
+# Refreshes the stars, forks and primary language on each project card (update-stats.ps1) from GitHub, and commits
+# index.html when they changed. GitHub Pages deploys the commit.
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write  # commit the updated page
+
+concurrency:
+  group: update-stats
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Update the stats
+        id: update
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $result = ./update-stats.ps1 | Select-Object -Last 1
+          "result=$result" >> $env:GITHUB_OUTPUT
+      - name: Commit
+        if: steps.update.outputs.result == 'changed'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Update the project stats"
+          git push
