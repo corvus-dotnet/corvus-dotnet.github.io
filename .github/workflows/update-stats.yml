@@ -1,13 +1,15 @@
 name: Update stats
-# Refreshes the stars, forks and primary language on each project card (update-stats.ps1) from GitHub, and commits
-# index.html when they changed. GitHub Pages deploys the commit.
+# Refreshes the stars, forks and primary language on each project card (update-stats.ps1) from GitHub, and when they
+# changed, opens a pull request with index.html and merges it. GitHub Pages deploys the merge. main takes changes by
+# pull request only (the ruleset "Protect main"), and the workflow's own token may not open one, so the pull request is
+# opened and merged with a token of the endjin bot, a GitHub App of the organisation.
 on:
   schedule:
     - cron: "17 5 * * *"
   workflow_dispatch:
 
 permissions:
-  contents: write  # commit the updated page
+  contents: read
 
 concurrency:
   group: update-stats
@@ -19,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
       - name: Update the stats
         id: update
         shell: pwsh
@@ -27,10 +31,23 @@ jobs:
         run: |
           $result = ./update-stats.ps1 | Select-Object -Last 1
           "result=$result" >> $env:GITHUB_OUTPUT
-      - name: Commit
+      - name: A token of the endjin bot
         if: steps.update.outputs.result == 'changed'
+        id: bot
+        uses: tibdex/github-app-token@32691ba7c9e7063bd457bd8f2a5703138591fa58 # v1.9
+        with:
+          app_id: ${{ secrets.ENDJIN_BOT_APP_ID }}
+          private_key: ${{ secrets.ENDJIN_BOT_PRIVATE_KEY }}
+      - name: Open the pull request and merge it
+        if: steps.update.outputs.result == 'changed'
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="stats/$(date -u +%Y-%m-%d)-${GITHUB_RUN_ID}"
+          git config user.name "endjin-bot"
+          git config user.email "endjin-bot@users.noreply.github.com"
+          git checkout -b "$branch"
           git commit -am "Update the project stats"
-          git push
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
+          url=$(gh pr create --base main --head "$branch" --title "Update the project stats" --body "The stars, forks and primary language of each project card, refreshed by update-stats.yml.")
+          gh pr merge "$url" --merge --delete-branch
